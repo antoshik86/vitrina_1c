@@ -2,12 +2,17 @@
 """Build EPF external processing file for 1C:Enterprise using v8unpack."""
 import os, shutil, sys, tempfile, uuid
 
-REPO_DIR = r'C:\Users\ai86\AppData\Local\Temp\opencode\vitrina_1c'
+REPO_DIR = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(__file__))
 VITRINA_DIR = os.path.join(REPO_DIR, '1c', 'vitrina_example')
 OUTPUT_EPF = os.path.join(REPO_DIR, 'vitrina_export.epf')
 WORK_DIR = os.path.join(tempfile.mkdtemp(), 'build_epf')
 
-sys.path.insert(0, r'C:\Users\ai86\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages')
+SITE_PKG = os.path.join(REPO_DIR, '_venv', 'Lib', 'site-packages')
+if os.path.isdir(SITE_PKG):
+    sys.path.insert(0, SITE_PKG)
+SITE_PKG_ALT = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Programs', 'Python', 'Python314', 'Lib', 'site-packages')
+if os.path.isdir(SITE_PKG_ALT):
+    sys.path.insert(0, SITE_PKG_ALT)
 from v8unpack import helper
 from v8unpack.json_container_decoder import JsonContainerDecoder
 
