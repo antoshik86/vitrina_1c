@@ -7,12 +7,13 @@ VITRINA_DIR = os.path.join(REPO_DIR, '1c', 'vitrina_example')
 OUTPUT_EPF = os.path.join(REPO_DIR, 'vitrina_export.epf')
 WORK_DIR = os.path.join(tempfile.mkdtemp(), 'build_epf')
 
-SITE_PKG = os.path.join(REPO_DIR, '_venv', 'Lib', 'site-packages')
-if os.path.isdir(SITE_PKG):
-    sys.path.insert(0, SITE_PKG)
-SITE_PKG_ALT = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Programs', 'Python', 'Python314', 'Lib', 'site-packages')
-if os.path.isdir(SITE_PKG_ALT):
-    sys.path.insert(0, SITE_PKG_ALT)
+for p in [
+    os.path.join(REPO_DIR, '_venv', 'Lib', 'site-packages'),
+    os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Python', 'pythoncore-3.14-64', 'Lib', 'site-packages'),
+    os.path.join(os.environ.get('LOCALAPPDATA', ''), 'Programs', 'Python', 'Python314', 'Lib', 'site-packages'),
+]:
+    if os.path.isdir(p):
+        sys.path.insert(0, p)
 from v8unpack import helper
 from v8unpack.json_container_decoder import JsonContainerDecoder
 
