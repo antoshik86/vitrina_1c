@@ -144,9 +144,15 @@ if __name__ == '__main__':
         out_path = os.path.abspath(sys.argv[out_idx + 1]) if out_idx >= 0 else os.path.join(REPO_DIR, 'export.epf')
         ok = build_epf(src_dir, out_path)
     else:
-        # Default: build vitrina
-        VITRINA_DIR = os.path.join(REPO_DIR, '1c', 'vitrina_example')
-        OUTPUT_EPF = os.path.join(REPO_DIR, 'vitrina_export.epf')
-        ok = build_epf(VITRINA_DIR, OUTPUT_EPF, name='ВыгрузкаВитриныНаХостинг')
+        # Default: build all
+        ok = True
+        builds = [
+            ('src/vitrina', 'vitrina_export.epf', 'ВыгрузкаВитриныНаХостинг'),
+            ('src/test_runner', 'test_runner.epf', 'ТестВитрины'),
+        ]
+        for src_rel, out_name, name in builds:
+            src_dir = os.path.join(REPO_DIR, src_rel)
+            out_path = os.path.join(REPO_DIR, out_name)
+            ok = build_epf(src_dir, out_path, name=name) and ok
 
     sys.exit(0 if ok else 1)

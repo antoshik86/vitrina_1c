@@ -10,7 +10,6 @@ jobs:
           python-version: '3.12'
       - run: pip install v8unpack
       - run: python build_epf.py ${{ github.workspace }}
-      - run: python build_epf.py --src ${{ github.workspace }}/tests/test_runner --out ${{ github.workspace }}/test_runner.epf
       - uses: actions/upload-artifact@v4
         with:
           name: epf-files
@@ -21,8 +20,9 @@ jobs:
   test:
     runs-on: windows-latest
     needs: build
-    if: false  # требует self-hosted runner с 1С; замени на windows-1c когда появится
+    if: false  # заменить на windows-1c при наличии self-hosted runner с 1С
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: epf-files
