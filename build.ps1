@@ -11,14 +11,19 @@ try {
         pip install v8unpack
     }
 
-    Write-Host "Сборка EPF..." -ForegroundColor Green
+    Write-Host "Сборка vitrina_export.epf..." -ForegroundColor Green
     python "$RepoDir\build_epf.py" "$RepoDir"
 
-    $epf = Join-Path $RepoDir "vitrina_export.epf"
-    if (Test-Path $epf) {
-        Write-Host "Готово: $epf" -ForegroundColor Green
-    } else {
-        throw "EPF не создан!"
+    Write-Host "Сборка test_runner.epf..." -ForegroundColor Green
+    python "$RepoDir\build_epf.py" "--src" "$RepoDir\tests\test_runner" "--out" "$RepoDir\test_runner.epf"
+
+    @("vitrina_export.epf", "test_runner.epf") | ForEach-Object {
+        $epf = Join-Path $RepoDir $_
+        if (Test-Path $epf) {
+            Write-Host "  OK: $epf" -ForegroundColor Green
+        } else {
+            throw "$_ не создан!"
+        }
     }
 }
 catch {
