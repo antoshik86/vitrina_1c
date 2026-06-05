@@ -1,0 +1,110 @@
+<!-- Витрина 1С: УНФ — Каталог товаров с корзиной и чатом -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Каталог товаров</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏪</text></svg>">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo">Витрина</div>
+  <div class="header-search">
+    <input type="text" id="search-input" placeholder="Поиск товаров..." autocomplete="off">
+  </div>
+  <div class="header-actions">
+    <button class="cart-btn" onclick="Cart.show()" title="Корзина">
+      🛒<span id="cart-badge">0</span>
+    </button>
+  </div>
+</header>
+
+<nav class="nav">
+  <a href="#" data-page="catalog" class="nav--active">Каталог</a>
+  <a href="#" data-page="about">О магазине</a>
+  <a href="#" data-page="contacts">Контакты</a>
+</nav>
+
+<main>
+  <!-- ===== CATALOG PAGE ===== -->
+  <section id="page-catalog" class="page page--active">
+    <div id="categories" class="categories"></div>
+    <div id="catalog" class="catalog">
+      <div class="catalog-loading">Загрузка каталога...</div>
+    </div>
+  </section>
+
+  <!-- ===== ABOUT PAGE ===== -->
+  <section id="page-about" class="page">
+    <h1 class="page-title">О магазине</h1>
+    <p style="color:var(--text-secondary);line-height:1.8;">
+      Добро пожаловать в наш интернет-магазин!<br><br>
+      Мы предлагаем широкий ассортимент товаров. Вся информация о наличии и ценах загружается
+      напрямую из учётной системы 1С:Управление нашей фирмой.<br><br>
+      Для оформления заказа добавьте товары в корзину и заполните контактные данные.
+      Менеджер свяжется с вами для подтверждения.
+    </p>
+  </section>
+
+  <!-- ===== CONTACTS PAGE ===== -->
+  <section id="page-contacts" class="page">
+    <h1 class="page-title">Контакты</h1>
+    <p style="color:var(--text-secondary);line-height:1.8;">
+      Свяжитесь с нами через чат (кнопка в правом нижнем углу) или по телефону.<br><br>
+      ✉️ Email: shop@example.com<br>
+      📞 Телефон: +7 (000) 000-00-00
+    </p>
+  </section>
+</main>
+
+<!-- ===== CART OVERLAY ===== -->
+<div id="cart-overlay" class="cart-overlay" onclick="if(event.target===this)Cart.hide()">
+  <div class="cart-panel">
+    <div class="cart-header">
+      <h2>Корзина</h2>
+      <button class="cart-close" onclick="Cart.hide()">✕</button>
+    </div>
+    <div class="cart-body" id="cart-preview"></div>
+    <div class="cart-footer">
+      <div class="cart-total-row">
+        <span>Итого:</span>
+        <span id="cart-total">0 ₽</span>
+      </div>
+      <div class="cart-form">
+        <input type="text" id="checkout-name" placeholder="Ваше имя *" required>
+        <input type="tel" id="checkout-phone" placeholder="Телефон *" required>
+        <textarea id="checkout-comment" placeholder="Комментарий к заказу"></textarea>
+      </div>
+      <button class="checkout-btn" onclick="Cart.checkout()">Отправить заказ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div id="toast"></div>
+
+<!-- ===== CHAT BUTTON ===== -->
+<button id="chat-btn" class="chat-btn" title="Чат">💬</button>
+
+<!-- ===== CHAT WINDOW ===== -->
+<div id="chat-window" class="chat-window">
+  <div class="chat-header">
+    <span class="chat-header-dot"></span>
+    <h3>Помощник</h3>
+  </div>
+  <div id="chat-messages" class="chat-messages"></div>
+  <div class="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Введите сообщение..." autocomplete="off">
+    <button id="chat-send">➤</button>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

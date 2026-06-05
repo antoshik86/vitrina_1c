@@ -1,0 +1,98 @@
+<!-- Витрина 1С — Карточка товара -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Товар</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-logo">Витрина</div>
+  <div class="header-actions">
+    <button class="cart-btn" onclick="Cart.show()" title="Корзина">
+      🛒<span id="cart-badge">0</span>
+    </button>
+  </div>
+</header>
+
+<main class="product-page">
+  <a href="/" class="product-detail-back">← Назад в каталог</a>
+  <div id="product-detail" class="product-detail">
+    <div class="product-detail-img">
+      <img id="detail-img" src="img/no-image.svg" alt="">
+    </div>
+    <div class="product-detail-info">
+      <div id="detail-article" class="product-detail-article"></div>
+      <h1 id="detail-name" class="product-detail-name"></h1>
+      <div id="detail-desc" class="product-detail-desc"></div>
+      <div id="detail-price" class="product-detail-price"></div>
+      <button id="detail-btn" class="product-detail-btn">В корзину</button>
+    </div>
+  </div>
+</main>
+
+<div id="cart-overlay" class="cart-overlay" onclick="if(event.target===this)Cart.hide()">
+  <div class="cart-panel">
+    <div class="cart-header">
+      <h2>Корзина</h2>
+      <button class="cart-close" onclick="Cart.hide()">✕</button>
+    </div>
+    <div class="cart-body" id="cart-preview"></div>
+    <div class="cart-footer">
+      <div class="cart-total-row">
+        <span>Итого:</span>
+        <span id="cart-total">0 ₽</span>
+      </div>
+      <div class="cart-form">
+        <input type="text" id="checkout-name" placeholder="Ваше имя *" required>
+        <input type="tel" id="checkout-phone" placeholder="Телефон *" required>
+        <textarea id="checkout-comment" placeholder="Комментарий к заказу"></textarea>
+      </div>
+      <button class="checkout-btn" onclick="Cart.checkout()">Отправить заказ</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<button id="chat-btn" class="chat-btn" title="Чат">💬</button>
+
+<div id="chat-window" class="chat-window">
+  <div class="chat-header">
+    <span class="chat-header-dot"></span>
+    <h3>Помощник</h3>
+  </div>
+  <div id="chat-messages" class="chat-messages"></div>
+  <div class="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Введите сообщение..." autocomplete="off">
+    <button id="chat-send">➤</button>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/chat.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  Cart.updateBadge();
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  if (!id) { document.getElementById('product-detail').innerHTML = '<p>Товар не указан</p>'; return; }
+  try {
+    const p = await API.getProduct(id);
+    document.getElementById('detail-img').src = p.image || 'img/no-image.svg';
+    document.getElementById('detail-name').textContent = p.name;
+    document.getElementById('detail-price').textContent = (p.price || 0).toLocaleString() + ' ₽';
+    document.getElementById('detail-article').textContent = p.article ? 'Арт. ' + p.article : '';
+    document.getElementById('detail-desc').textContent = p.description || '';
+    document.getElementById('detail-btn').onclick = () => Cart.add({ id: p.id, name: p.name, price: p.price, image: p.image });
+  } catch {
+    document.getElementById('product-detail').innerHTML = '<p style="color:var(--danger)">Ошибка загрузки товара</p>';
+  }
+});
+</script>
+</body>
+</html>
