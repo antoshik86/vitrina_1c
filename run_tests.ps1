@@ -45,7 +45,39 @@ function Find-OneC {
     return $latest.FullName, $ver
 }
 
-# --------------- 2. Конфигурация ---------------
+# --------------- 2. Поиск списка ИБ ---------------
+function Find-IBasesFile {
+    $paths = @(
+        "$env:APPDATA\1C\1CEStart\ibases.v8i",
+        "$env:LOCALAPPDATA\1C\1CEStart\ibases.v8i",
+        "$env:ALLUSERSPROFILE\1C\1CEStart\ibases.v8i"
+    )
+    foreach ($p in $paths) {
+        if (Test-Path $p) { return $p }
+    }
+    return $null
+}
+
+function Read-IBases {
+    param([string]$Path)
+    $bases = @()
+    $current = $null
+    Get-Content $Path | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -match '^\[(.+)\]$') {
+            if ($current) { $bases += $current }
+            $current = @{ Name = $Matches[1]; Connect = ""; Title = "" }
+        } elseif ($line -match '^Connect=(.+)$' -and $current) {
+            $current.Connect = $Matches[1]
+        } elseif ($line -match '^Title=(.+)$' -and $current) {
+            $current.Title = $Matches[1]
+        }
+    }
+    if ($current) { $bases += $current }
+    return $bases
+}
+
+# --------------- 3. Конфигурация подключения ---------------
 function Get-Config {
     $script:OneCExe, $script:OneCVersion = Find-OneC
 
@@ -58,20 +90,52 @@ function Get-Config {
         return
     }
 
-    Write-Host "`nIB connection params:" -ForegroundColor Yellow
-    Write-Host '  Example file: /F"C:\Base\MyDB"' -ForegroundColor DarkGray
-    Write-Host '  Example server: /S"Server\MyDB"' -ForegroundColor DarkGray
-    $script:IBString = Read-Host "  IB path"
-    $script:User = Read-Host "  User"
-    $spass = Read-Host "  Password" -AsSecureString
+    # Пробуем прочитать список баз
+    $ibasesFile = Find-IBasesFile
+    $ibases = @()
+    $customChosen = $false
+    if ($ibasesFile) {
+        $ibases = Read-IBases -Path $ibasesFile
+        if ($ibases.Count -gt 0) {
+            Write-Host "`nСписок информационных баз:" -ForegroundColor Yellow
+            for ($i = 0; $i -lt $ibases.Count; $i++) {
+                $title = if ($ibases[$i].Title) { $ibases[$i].Title } else { $ibases[$i].Name }
+                Write-Host "  $($i+1). $title" -ForegroundColor Cyan
+            }
+            Write-Host "  0. Ввести вручную" -ForegroundColor DarkGray
+            $choice = Read-Host "  Выбери номер базы"
+            if ([int]$choice -gt 0 -and [int]$choice -le $ibases.Count) {
+                $selected = $ibases[[int]$choice - 1]
+                $script:IBString = $selected.Connect
+                Write-Host "  Выбрано: $($selected.Title)" -ForegroundColor Green
+            } else {
+                $customChosen = $true
+            }
+        } else {
+            $customChosen = $true
+        }
+    } else {
+        Write-Host "Файл списка баз не найден" -ForegroundColor DarkGray
+        $customChosen = $true
+    }
+
+    if ($customChosen) {
+        Write-Host "`nВведи путь к ИБ вручную:" -ForegroundColor Yellow
+        Write-Host '  Пример файловой: /F"C:\Base\MyDB"' -ForegroundColor DarkGray
+        Write-Host '  Пример серверной: /S"Server\MyDB"' -ForegroundColor DarkGray
+        $script:IBString = Read-Host "  Путь"
+    }
+
+    $script:User = Read-Host "  Пользователь"
+    $spass = Read-Host "  Пароль" -AsSecureString
     $script:Pass = [System.Net.NetworkCredential]::new("", $spass).Password
 
     $cfg = @{ OneCExe = $OneCExe; IBString = $IBString; User = $User; Pass = $Pass }
     $cfg | ConvertTo-Json | Set-Content $ConfigFile -Encoding UTF8
-    Write-Host "Saved to $ConfigFile" -ForegroundColor Green
+    Write-Host "Сохранено в $ConfigFile" -ForegroundColor Green
 }
 
-# --------------- 3. Сборка EPF ---------------
+# --------------- 4. Сборка EPF ---------------
 function Build-EPF {
     Write-Host "`n=== Build EPF ===" -ForegroundColor Cyan
 
@@ -103,7 +167,7 @@ function Build-EPF {
     }
 }
 
-# --------------- 4. Запуск тестов ---------------
+# --------------- 5. Запуск тестов ---------------
 function Run-Tests {
     Write-Host "`n=== Running 1C tests ===" -ForegroundColor Cyan
     $vitrinaEpf = Join-Path $RepoDir "vitrina_export.epf"
@@ -151,7 +215,7 @@ function Run-Tests {
     return $false
 }
 
-# --------------- 5. Deploy zip ---------------
+# --------------- 6. Deploy zip ---------------
 function New-DeployZip {
     param([string]$ZipPath = (Join-Path $RepoDir "vitrina_deploy.zip"))
 
