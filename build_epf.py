@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
-"""Build EPF external processing file for 1C:Enterprise using v8unpack.
-Usage:
-  python build_epf.py [<repo_dir>]                 # build vitrina_example
-  python build_epf.py --src <dir> --out <file>     # generic build
-"""
-import os, sys, tempfile, uuid
+"""Build EPF using v8unpack JSON format."""
+import json, os, shutil, sys, tempfile, uuid
 
 REPO_DIR = os.path.abspath(sys.argv[1] if len(sys.argv) > 1
               and not sys.argv[1].startswith('--') else os.path.dirname(__file__))
@@ -16,9 +12,7 @@ for p in [
 ]:
     if os.path.isdir(p):
         sys.path.insert(0, p)
-from v8unpack import helper
-from v8unpack.json_container_decoder import JsonContainerDecoder
-from v8unpack.container_writer import compress_and_build as cb, build as container_build
+from v8unpack.v8unpack import build as v8_build
 
 
 def make_uuid():
@@ -30,113 +24,200 @@ def load_bsl(path):
         return f.read()
 
 
-def brace_write(data, dest_dir, file_name):
-    helper.makedirs(dest_dir, exist_ok=True)
-    decoder = JsonContainerDecoder(src_dir=dest_dir, file_name=file_name)
-    raw_data = decoder.encode_root_object(data)
-    decoder.write_data(dest_dir, file_name, raw_data)
-
-
-def build_epf(src_dir, output_path, name='Обработка', form_module='', object_module=''):
-    """Build EPF from source BSL files in src_dir, or from provided module text."""
+def build_epf(src_dir, output_path, name='Обработка', name2_en='Processing',
+              form_module='', object_module=''):
+    """Build EPF from source BSL files using v8unpack JSON format."""
 
     if not form_module:
         form_module = load_bsl(os.path.join(src_dir, 'form_module.bsl'))
     if not object_module:
         object_module = load_bsl(os.path.join(src_dir, 'object_module.bsl'))
 
-    print(f"Output: {output_path}")
+    print(f"Building: {output_path}")
 
+    # UUIDs
     file_uuid = make_uuid()
     obj_uuid = make_uuid()
     container_uuid = make_uuid()
     form_uuid = make_uuid()
     form_obj_uuid = make_uuid()
 
-    EDP_TYPE_UUID = 'c3831ec8-d8d5-4f93-8a22-f9bfae07327f'
-    FORM_TYPE_UUID = 'd5b0e5ed-256d-401c-9c36-f630cafd8a62'
+    EDP_TYPE = 'c3831ec8-d8d5-4f93-8a22-f9bfae07327f'
+    FORM_TYPE = 'd5b0e5ed-256d-401c-9c36-f630cafd8a62'
+    CODE_TYPE = '9cd510cd-abfc-11d4-9434-004095e12fc7'
 
+    # Create temp directory with v8unpack structure
     work_dir = os.path.join(tempfile.mkdtemp(), 'build_epf')
-    stage1 = os.path.join(work_dir, 'stage1', '0')
-    os.makedirs(stage1, exist_ok=True)
 
-    # root
-    brace_write([["2", file_uuid, ""]], stage1, 'root')
-
-    # version
-    brace_write([[["217", ["0", "803"]]]], stage1, 'version')
-
-    # copyinfo
-    brace_write([["4", ["0"], ["0"], ["0"], ["0", "0"], ["0"]]], stage1, 'copyinfo')
-
-    # Header file
-    inner_header = [
-        "1",
-        ["1", "9cd510cd-abfc-11d4-9434-004095e12fc7", obj_uuid],
-        f'"{name}"',
-        ["0"],
-        '""',
+    # --- ExternalDataProcessor.json ---
+    header = [
+        "2",
+        file_uuid,
+        "",
+        [
+            EDP_TYPE,
+            [
+                EDP_TYPE,
+                [
+                    "1",
+                    container_uuid,
+                    "",
+                    [
+                        "1",
+                        [
+                            "1",
+                            [
+                                "1",
+                                CODE_TYPE,
+                                obj_uuid,
+                            ],
+                            json.dumps(name, ensure_ascii=False),
+                            ["0"],
+                            '""',
+                        ]
+                    ]
+                ],
+                "1",
+                [
+                    FORM_TYPE,
+                    "1",
+                    form_uuid,
+                ]
+            ]
+        ]
     ]
-    obj_data = ["1", inner_header]
-    container_info = ["1", container_uuid, "", obj_data]
-    form_type_data = [FORM_TYPE_UUID, "1", form_uuid]
-    include = [EDP_TYPE_UUID, container_info, "1", form_type_data]
-    section = [EDP_TYPE_UUID, include]
-    header_data = ["2", file_uuid, "", section]
-    brace_write([header_data], stage1, file_uuid)
 
-    # Object module code
-    with open(os.path.join(stage1, f'{obj_uuid}.0'), 'w', encoding='utf-8-sig') as f:
+    edp_json = {
+        "root": True,
+        "file_uuid": file_uuid,
+        "uuid": obj_uuid,
+        "name": name,
+        "name2": {"en": name2_en},
+        "comment": "",
+        "header": [header],
+        "v8unpack": "1.2.6",
+        "version": [[["217", ["0", "803"]]]],
+        "copyinfo": [["4", ["0"], ["0"], ["0"], ["0", "0"], ["0"]]],
+        "form1": None,
+        "code_info_obj": "file",
+        "code_encoding_obj": "utf-8-sig",
+        "obj_version": "802",
+    }
+
+    os.makedirs(work_dir, exist_ok=True)
+    with open(os.path.join(work_dir, 'ExternalDataProcessor.json'), 'w', encoding='utf-8') as f:
+        json.dump(edp_json, f, indent=2, ensure_ascii=False)
+
+    # Object module BSL
+    with open(os.path.join(work_dir, 'ExternalDataProcessor.obj.bsl'), 'w', encoding='utf-8-sig') as f:
         f.write(object_module)
 
-    # Form header
-    form_inner_header = ["1", ["1", "9cd510cd-abfc-11d4-9434-004095e12fc7", form_obj_uuid], '"Форма"', ["0"], '""']
-    form_obj_data = ["1", form_inner_header]
-    form_container_info = ["1", container_uuid, "", form_obj_data]
-    form_type_data_inner = [FORM_TYPE_UUID, "0"]
-    form_include = [FORM_TYPE_UUID, form_container_info, "1", form_type_data_inner]
-    form_includes_section = [FORM_TYPE_UUID, form_include]
-    form_root = ["1", ["13", ["1", ["1", "9cd510cd-abfc-11d4-9434-004095e12fc7", form_obj_uuid], '"Форма"', ["0"], '""']]]
-    form_header_data = ["13", ["1", form_root, "", form_includes_section]]
-    brace_write([form_header_data], stage1, form_uuid)
+    # --- Form directory ---
+    form_dir = os.path.join(work_dir, 'Form', 'Форма')
+    os.makedirs(form_dir, exist_ok=True)
 
-    # Form elements
-    form_elements = [
+    form_header = [
+        "13",
         [
-            "4",
-            ["49", "0","0","0","0","0","0","0","00000000-0000-0000-0000-000000000000","0"],
-            "1", "","",["0","0"],["0","0"],["0","0"],["0","0"],"0","0",
-        ],
-        "0", ["0","0"], "0", "0", ["0"], "0", ["0"], "0", "0", "0", "0", "0", "0", "1", "0",
-        ["0","0"], "0", ["0"], "0", ["0"], ["0","0"], ["0","0"], "0", "0", "0",
-        ["0","0"], ["0"], "0", ["0"], ["0"], "0", "0", "0",
+            "1",
+            [
+                "1",
+                [  # form_root
+                    "13",
+                    [
+                        "1",
+                        [
+                            "1",
+                            CODE_TYPE,
+                            "в отдельном файле",
+                        ],
+                        json.dumps('Форма', ensure_ascii=False),
+                        ["0"],
+                        '""',
+                    ]
+                ],
+                None,
+                [  # include section
+                    FORM_TYPE,
+                    [
+                        FORM_TYPE,
+                        [
+                            "1",
+                            container_uuid,
+                            "",
+                            [
+                                "1",
+                                [
+                                    "1",
+                                    [
+                                        "1",
+                                        CODE_TYPE,
+                                        form_obj_uuid,
+                                    ],
+                                    json.dumps('Форма', ensure_ascii=False),
+                                    ["0"],
+                                    '""',
+                                ]
+                            ]
+                        ],
+                        "1",
+                        [
+                            FORM_TYPE,
+                            "0",
+                        ]
+                    ]
+                ]
+            ]
+        ]
     ]
-    brace_write(form_elements, stage1, f'{form_uuid}.1')
 
-    # Form module code
-    with open(os.path.join(stage1, f'{form_obj_uuid}.0'), 'w', encoding='utf-8-sig') as f:
+    form_json = {
+        "name": "Форма",
+        "name2": {},
+        "comment": "",
+        "header": [form_header],
+        "Тип формы": "0",
+        "form": [[]],
+        "code_info_obj": "file",
+        "code_encoding_obj": "utf-8-sig",
+        "Версия элементов формы": "",
+        "obj_version": "13",
+    }
+
+    with open(os.path.join(form_dir, 'Form.json'), 'w', encoding='utf-8') as f:
+        json.dump(form_json, f, indent=2, ensure_ascii=False)
+
+    # Form identity
+    form_id = {"uuid": form_obj_uuid}
+    with open(os.path.join(form_dir, 'Form.id.json'), 'w', encoding='utf-8') as f:
+        json.dump(form_id, f, indent=2)
+
+    # Form elements (empty)
+    form_elem = {
+        "params": [],
+        "props": [],
+        "commands": [],
+        "tree": [],
+        "data": {},
+    }
+    with open(os.path.join(form_dir, 'Form.elem.json'), 'w', encoding='utf-8') as f:
+        json.dump(form_elem, f, indent=2)
+
+    # Form module BSL
+    with open(os.path.join(form_dir, 'Form.obj.bsl'), 'w', encoding='utf-8-sig') as f:
         f.write(form_module)
 
-    # versions
-    file_list = ['root', 'version', 'copyinfo', file_uuid, f'{obj_uuid}.0', form_uuid, f'{form_uuid}.1', f'{form_obj_uuid}.0']
-    versions = ["1", str(len(file_list) + 1), '""', make_uuid()]
-    for fn in file_list:
-        versions.append(f'"{fn}"')
-        versions.append(make_uuid())
-    brace_write([versions], stage1, 'versions')
+    # Build EPF using v8unpack
+    output_dir = os.path.dirname(output_path) or '.'
+    os.makedirs(output_dir, exist_ok=True)
+    v8_build(work_dir, output_path)
 
-    # Build container
-    stage1_parent = os.path.join(work_dir, 'stage1')
-    stage0 = os.path.join(work_dir, 'stage0')
-    cb(stage1_parent, stage0)
-    container_build(stage0, output_path, True)
-
-    print(f"\nEPF built: {output_path} ({os.path.getsize(output_path)} bytes)")
+    size = os.path.getsize(output_path)
+    print(f"EPF built: {output_path} ({size} bytes)")
     return True
 
 
 if __name__ == '__main__':
-    # Check for generic --src/--out mode
     if '--src' in sys.argv:
         src_idx = sys.argv.index('--src')
         src_dir = os.path.abspath(sys.argv[src_idx + 1])
@@ -144,15 +225,14 @@ if __name__ == '__main__':
         out_path = os.path.abspath(sys.argv[out_idx + 1]) if out_idx >= 0 else os.path.join(REPO_DIR, 'export.epf')
         ok = build_epf(src_dir, out_path)
     else:
-        # Default: build all
         ok = True
         builds = [
-            ('src/vitrina', 'vitrina_export.epf', 'ВыгрузкаВитриныНаХостинг'),
-            ('src/test_runner', 'test_runner.epf', 'ТестВитрины'),
+            ('src/vitrina', 'vitrina_export.epf', 'ВыгрузкаВитриныНаХостинг', 'CatalogExport'),
+            ('src/test_runner', 'test_runner.epf', 'ТестВитрины', 'TestRunner'),
         ]
-        for src_rel, out_name, name in builds:
+        for src_rel, out_name, name, name_en in builds:
             src_dir = os.path.join(REPO_DIR, src_rel)
             out_path = os.path.join(REPO_DIR, out_name)
-            ok = build_epf(src_dir, out_path, name=name) and ok
+            ok = build_epf(src_dir, out_path, name=name, name2_en=name_en) and ok
 
     sys.exit(0 if ok else 1)
