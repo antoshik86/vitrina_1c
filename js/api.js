@@ -1,4 +1,9 @@
 const API = {
+  // Адрес сервера 1С (HTTP-сервисы). ЗАМЕНИТЬ на свой!
+  // Если 1С доступен из интернета и поддерживает CORS:
+  //   base: 'https://your-1c-server.ru/hs/vitrina'
+  // Если используете PHP-прокси (api/proxy.php):
+  //   base: '/api'
   base: '/hs/vitrina',
 
   async request(method, path, body) {
