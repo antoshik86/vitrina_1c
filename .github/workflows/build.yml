@@ -1,4 +1,4 @@
-name: Build & Test EPF
+name: Build EPF
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -16,14 +16,4 @@ jobs:
           path: |
             vitrina_export.epf
             test_runner.epf
-
-  test:
-    runs-on: windows-latest
-    needs: build
-    if: false  # заменить на windows-1c при наличии self-hosted runner с 1С
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: epf-files
-      - run: .\run_tests.ps1
+            vitrina_deploy.zip
