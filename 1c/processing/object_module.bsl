@@ -57,37 +57,37 @@
 
 Функция СгенерироватьКарточку(Товар) Экспорт
 
-    Шаблон = "
-    |<!DOCTYPE html>
-    |<html lang='ru'>
-    |<head>
-    |  <meta charset='UTF-8'>
-    |  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    |  <title>" + Товар.name + " | Витрина</title>
-    |  <link rel='stylesheet' href='/css/style.css'>
-    |</head>
-    |<body>
-    |  <header class='header'>
-    |    <div class='header-logo'>Витрина</div>
-    |  </header>
-    |  <main class='product-page'>
-    |    <a href='/' class='product-detail-back'>← Назад в каталог</a>
-    |    <div class='product-detail'>
-    |      <div class='product-detail-img'>
-    |        <img src='/img/no-image.svg' alt='" + Товар.name + "'>
-    |      </div>
-    |      <div class='product-detail-info'>
-    |        <div class='product-detail-article'>Арт. " + Товар.article + "</div>
-    |        <h1 class='product-detail-name'>" + Товар.name + "</h1>
-    |        <div class='product-detail-desc'>" + Товар.description + "</div>
-    |        <div class='product-detail-price'>" + Формат(Товар.price, ""ЧДЦ=2"") + " ₽</div>
-    |      </div>
-    |    </div>
-    |  </main>
-    |</body>
-    |</html>";
+    HTML = Новый ТекстовыйДокумент;
+    HTML.ДобавитьСтроку("<!DOCTYPE html>");
+    HTML.ДобавитьСтроку("<html lang='ru'>");
+    HTML.ДобавитьСтроку("<head>");
+    HTML.ДобавитьСтроку("<meta charset='UTF-8'>");
+    HTML.ДобавитьСтроку("<meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+    HTML.ДобавитьСтроку("<title>" + Товар.name + " | Витрина</title>");
+    HTML.ДобавитьСтроку("<link rel='stylesheet' href='/css/style.css'>");
+    HTML.ДобавитьСтроку("</head>");
+    HTML.ДобавитьСтроку("<body>");
+    HTML.ДобавитьСтроку("<header class='header'>");
+    HTML.ДобавитьСтроку("<div class='header-logo'>Витрина</div>");
+    HTML.ДобавитьСтроку("</header>");
+    HTML.ДобавитьСтроку("<main class='product-page'>");
+    HTML.ДобавитьСтроку("<a href='/' class='product-detail-back'>← Назад</a>");
+    HTML.ДобавитьСтроку("<div class='product-detail'>");
+    HTML.ДобавитьСтроку("<div class='product-detail-img'>");
+    HTML.ДобавитьСтроку("<img src='/img/no-image.svg' alt='" + Товар.name + "'>");
+    HTML.ДобавитьСтроку("</div>");
+    HTML.ДобавитьСтроку("<div class='product-detail-info'>");
+    HTML.ДобавитьСтроку("<div class='product-detail-article'>Арт. " + Товар.article + "</div>");
+    HTML.ДобавитьСтроку("<h1 class='product-detail-name'>" + Товар.name + "</h1>");
+    HTML.ДобавитьСтроку("<div class='product-detail-desc'>" + Товар.description + "</div>");
+    HTML.ДобавитьСтроку("<div class='product-detail-price'>" + Формат(Товар.price, "ЧДЦ=2") + " ₽</div>");
+    HTML.ДобавитьСтроку("</div>");
+    HTML.ДобавитьСтроку("</div>");
+    HTML.ДобавитьСтроку("</main>");
+    HTML.ДобавитьСтроку("</body>");
+    HTML.ДобавитьСтроку("</html>");
 
-    Возврат Шаблон;
+    Возврат HTML.ПолучитьТекст();
 
 КонецФункции
 
@@ -107,7 +107,7 @@
 
     // Сохраняем JSON
     Состояние("Сохранение catalog.json...");
-    ЗаписатьJSON(КаталогВыгрузки + "catalog.json", Данные);
+    ЗаписатьФайлJSON(КаталогВыгрузки + "catalog.json", Данные);
 
     // Генерируем HTML-карточки
     Состояние("Генерация HTML-карточек товаров...");
@@ -158,7 +158,7 @@
     Док.Записать(ИмяФайла);
 КонецПроцедуры
 
-Процедура ЗаписатьJSON(ИмяФайла, Данные)
+Процедура ЗаписатьФайлJSON(ИмяФайла, Данные)
     Запись = Новый ЗаписьJSON;
     Запись.УстановитьФайл(ИмяФайла, "UTF-8");
     ЗаписатьJSON(Запись, Данные);
